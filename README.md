@@ -1,6 +1,12 @@
 # portal_utilities
 
-Currently, a set of utilities for Portal backup and restore.
+Currently, a set of utilities for Portal backup and restore. There are two ways to execute the utilities, either by running individual actions, or performing a complete backup/restore cycle.
+
+<b>Backup/Restore Cycle</b>
+
+python portal_utilities.py --fromconfig config.yaml
+
+<b>Actions</b>
 
 <b>List backups</b>
 
