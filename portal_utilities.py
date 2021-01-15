@@ -362,6 +362,10 @@ def portal_credentials_get (filename):
 
 def run_from_yaml(config):
 
+	print("")
+	print("Step 1 of 5: Confirming accounts and pre-requisites ...")
+	print("")
+
 	src_hostname, src_username, src_password, dst_hostname, dst_username, dst_password = portal_credentials_get(config)
 
 	# Login to source and destination Portals to confirm the passwords are correct before proceeding
@@ -385,9 +389,14 @@ def run_from_yaml(config):
 	dst_access_token = portal_authenticate (dst_hostname, dst_username, dst_password, dst_version)
 	if dst_access_token == None:
 		print("Authentication failed to Portal %s. Terminating script ..." % dst_hostname)
+		return
 
 	# Save the current timestamp for future comparison to restore time
 	current_time = datetime.now().timestamp()
+
+	print("")
+	print("Step 2 of 5: Taking backup from source Portal %s" % src_hostname)
+	print("")
 
 	print("Checking backup space availability on Portal %s." % src_hostname)
 	# Check the current list of primary Portal backups (list_backups)
@@ -414,6 +423,10 @@ def run_from_yaml(config):
 		return
 	else:
 		print("Backup file %s created and downloaded for Portal %s" % (backup_filename, src_hostname))
+
+	print("")
+	print("Step 3 of 5: Uploading backup to destination Portal %s." % dst_hostname)
+	print("")
 
 	# Check if there is available space on the secondary instance (list_backups)
 	print("Checking space on Portal %s to upload backup." % dst_hostname)
@@ -444,32 +457,60 @@ def run_from_yaml(config):
 			print("Upload to Portal %s failed." % dst_hostname)
 			return
 
+	print("")
+	print("Step 4 of 5: Kicking off restore process on Portal %s." % dst_hostname)
+	print("")
+
 	# Restore the uploaded backup on the secondary instance (restore)
 	print("Beginning restore process on Portal %s." % dst_hostname)
 	restore_result = portal_backup_restore(dst_hostname, dst_access_token, dst_version, id)
 
-	# Use the restore_status to keep checking the status every minute, even if it times out and fails to return while rebooting, until the restore status shows as 'completed' (restore_status) and the 'last_restore_time' is past the start of the script; or you potentially hit a timeout in your script (30 minutes?)
+	# Use the restore_status to keep checking the status every minute, even if it times out and fails to return while rebooting
+	# Check until the restore status shows as 'completed' (restore_status) and the 'last_restore_time' is past the start of the script; or you potentially hit a timeout in your script
 	not_complete = True
+	rebooting = False
 	start_time = datetime.now()
 	while not_complete:
-		restore_status = portal_backup_restore_status (dst_hostname, dst_access_token, dst_version)
-		if restore_status['status'] == 'completed':
-			not_complete = False
-			if restore_status['last_restore_time'] > current_time:
-				print("Restore completed on Portal %s!" % dst_hostname)
-		else:
-			print("Restore on %s has been running for %d minutes. Status: %s" % (dst_hostname, (datetime.now()-start_time).seconds/60, restore_status['status_message']))
-			time.sleep(60)
+		time.sleep(15)
+		try:
+			if rebooting:
+				dst_access_token = portal_authenticate (dst_hostname, dst_username, dst_password, dst_version)
+				if dst_access_token == None:
+					print("Authentication failed to Portal %s. Waiting for reboot to complete ..." % dst_hostname)
+					continue
+				else:
+					rebooting = False
+			restore_status = portal_backup_restore_status (dst_hostname, dst_access_token, dst_version)
+			if restore_status['status'] == 'completed':
+				not_complete = False
+				if restore_status['last_restore_time'] > current_time:
+					print("Restore completed on Portal %s!" % dst_hostname)
+			else:
+				print("Restore on %s has been running for %d minutes. Status: %s" % (dst_hostname, (datetime.now()-start_time).seconds/60, restore_status['status_message']))
+		except:
+			print("Portal %s is not responding. Waiting for reboot to complete ..." % dst_hostname)
+			rebooting = True
 
 		if ((datetime.now() - start_time).seconds / 60) > PORTAL_UTILITIES_SCRIPT_TIMEOUT:
 			print("Script has hit time limit without restore completion. Please check Portal console for restore status. Terminating script ...")
 			return
 
+	print("")
+	print("Step 5 of 5: Cleaning up after script execution.")
+	print("")
+
 	# Optionally, delete the uploaded backup from which you restored (delete_backup)
-	print("Deleting backup %s from %s ..." % id, dst_hostname)
+	print("Deleting backup %s from %s ..." % (id, dst_hostname))
 	delete_status = portal_backup_delete(dst_hostname, dst_access_token, dst_version, id)
 
-	print("Backup from Portal %s has been restored to Portal %s. Success!" % src_hostname, dst_hostname)
+	# Optionally, delete the backup from the local file system
+	try:
+		os.remove(backup_filename)
+	except:
+		print("Unable to delete temporary file %s from local file system." % backup_filename)
+
+	print("")
+	print("Backup from Portal %s has been restored to Portal %s. Success!" % (src_hostname, dst_hostname))
 
 	return
 
