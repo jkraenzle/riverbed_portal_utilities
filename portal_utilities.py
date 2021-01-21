@@ -271,7 +271,7 @@ def run_action(hostname, username, password, action, actionfile):
 		print ("Action %s is unknown" % action)
 
 	if (password == None or password == ""):
-		print ("Please provide password for account %s on %s" % username, hostname)
+		print ("Please provide password for account %s on %s" % (username, hostname))
 		password = getpass.getpass ()
 
 	# Loop through hosts, applying 'action'
