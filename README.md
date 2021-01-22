@@ -6,6 +6,23 @@ Currently, a set of utilities for Portal backup and restore. There are two ways 
 
 python portal_utilities.py --fromconfig config.yaml
 
+The config.yaml includes the ability to specify the source hostname and username and the destination hostname and username, along with backup storage and deletion options.
+
+src_hostname: 10.1.150.224
+src_username: admin
+dst_hostname: 10.1.150.239
+dst_username: admin
+delete_options:
+  delete_all_existing_backups_on_appliance: False
+  delete_oldest_backup: True
+  do_not_delete_existing_backups: False
+store_options:
+  download_and_store_existing_backups: False
+  number_of_archived_backups: 1
+  path: /Users/jkraenzle/Desktop/Riverbed/GitHub/portal_utilities/backups_for_restore/
+
+For now, the path must include the trailing separator.
+
 <b>Actions</b>
 
 <b>List backups</b>

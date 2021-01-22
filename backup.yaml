@@ -1,0 +1,10 @@
+hostname: 10.1.150.224
+username: admin
+delete_options:
+  delete_all_existing_backups_on_appliance: False
+  delete_oldest_backup: True
+  do_not_delete_existing_backups: False
+store_options:
+  download_and_store_existing_backups: False
+  number_of_archived_backups: 1
+  path: /Users/jkraenzle/Desktop/Riverbed/GitHub/portal_utilities/backups/
