@@ -41,6 +41,7 @@ Note, only two backups are permitted on Portal at one time. If two exist, one ba
 <b>Show restore status</b>
   
 > python portal_utilities.py --hostname <hostname> --username admin --action restore_status
-
+```
   Output example:
    {'last_restore_time': 1602540247, 'status': 'completed', 'status_message': ''}
+```
