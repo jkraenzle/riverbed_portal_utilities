@@ -168,7 +168,7 @@ def portal_backup_download_and_store (appliance, access_token, version, backup, 
 	if 'backup_time' in backup:
 		backup_timestamp = backup['backup_time']
 		dt = datetime.fromtimestamp(backup_timestamp)
-		backup_time_str = dt.strftime("%Y%m%d%I%M%S")
+		backup_time_str = dt.strftime("%Y%m%d%H%M%S")
 
 	backup_filename = appliance + '.' + backup_time_str + ".backup.tgz"
 	if path != None:

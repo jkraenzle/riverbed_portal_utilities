@@ -1,11 +1,14 @@
+# Provide hostname, username, and optionally password of the source and destination Portals
 src_hostname: 10.1.150.224
 src_username: admin
 dst_hostname: 10.1.150.239
 dst_username: admin
+# Specify how you want to handle existing backups on the target Portals, as space may need to be made to create or upload a new backup on the system
 delete_options:
   delete_all_existing_backups_on_appliance: False
   delete_oldest_backup: True
   do_not_delete_existing_backups: False
+# Specify how you want to store backups locally, if you want to archive them
 store_options:
   download_and_store_existing_backups: False
   number_of_archived_backups: 1
