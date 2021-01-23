@@ -112,7 +112,7 @@ def portal_backups_list (appliance, access_token, version):
 
 	backup_list = portal_rest_api("GET", "/api/npm.backup/1.0/backups", appliance, access_token, version)
 	
-	return backup_list ["items"]
+	return backup_list["items"]
 
 # REST API Python wrapper to create backup on appliance
 def portal_backup_create (appliance, access_token, version):
@@ -127,7 +127,7 @@ def portal_backup_create (appliance, access_token, version):
 		return None, None
 
 	# Get backup id and sleep so there's time for backup to initially create
-	backup_id = backup_in_process ["id"]
+	backup_id = backup_in_process['id']
 	time.sleep (5)
 
 	# Keep checking if backup has completed
@@ -676,10 +676,10 @@ def backup_restore_from_yaml(config):
 	print("")
 
 	# Delete the created backup on the destination Portal that was used for the restore (delete_backup)
-	print("Deleting backup %s from %s ..." % (id, dst_hostname))
+	print("Deleting uploaded backup %s (from filename %s) from Portal %s ..." % (id, backup_filename, dst_hostname))
 	delete_status = portal_backup_delete(dst_hostname, dst_access_token, dst_version, id)
 
-	# Optionally, delete the temporary backup from the local file system
+	# Optionally, delete the backups from the local file system
 	cleanup_status = portal_backup_clean_locally(store_options)
 	if cleanup_status == False:
 		print("Cleanup failed. Terminating script ...")
