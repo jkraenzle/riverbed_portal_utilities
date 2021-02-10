@@ -3,6 +3,10 @@ src_hostname: 10.1.150.224
 src_username: admin
 dst_hostname: 10.1.150.239
 dst_username: admin
+# Provide a path to the TLS/SSL certificate and key in PEM format
+certificate:
+# passphrase: test
+  file: /Users/jkraenzle/Desktop/Riverbed/GitHub/portal_utilities/certandkey.pem
 # Specify how you want to handle existing backups on the target Portals, as space may need to be made to create or upload a new backup on the system
 delete_options:
   delete_all_existing_backups_on_appliance: False

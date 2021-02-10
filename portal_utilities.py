@@ -323,6 +323,31 @@ def portal_backup_clean_locally (store_options):
 	
 	return True
 
+##### CERTIFICATE FUNCTIONS #####
+
+def portal_certificate_import(hostname, access_token, version, certificate):
+
+	if certificate == None: 
+		print("WARNING")
+		print("Certificate options are not present in configuration file.")
+		return None
+
+	if 'file' in certificate:
+		pemcertandkey = certificate_read(certificate['file'])
+	else:
+		print("WARNING")
+		print("Certificate file was not specified in configuration settings. Web server certificate must be replaced manually.")
+		return None
+
+	if 'passphrase' in certificate:
+		payload = { "pem": pemcertandkey, "passphrase": certificate['passphrase'] }
+	else:
+		payload = { "pem": pemcertandkey}
+
+	certificate = portal_rest_api("POST", "/api/npm.https/1.0/certificate/import", hostname, access_token, version, payload=payload)
+
+	return certificate
+
 ##### GENERAL FUNCTIONS #####
 
 # REST API Python wrapper to authenticate to the server (Login)
@@ -463,6 +488,18 @@ def run_action(hostname, username, password, action, actionfile):
 
 	return
 
+def certificate_read(filename):
+	
+	try:
+		with open(filename, "r") as cert_f:
+			pemcertandkey = cert_f.read()
+	except:
+		print("ERROR")
+		print("Failed to open file" % filename)
+		return None
+
+	return pemcertandkey
+
 def backup_credentials_get (filename):
 
 	credentials = yamlread (filename)	
@@ -522,7 +559,11 @@ def backup_restore_credentials_get (filename):
 	if 'store_options' in credentials:
 		store_options = credentials['store_options']
 
-	return src_hostname, src_username, src_password, dst_hostname, dst_username, dst_password, delete_options, store_options
+	certificate = None
+	if 'certificate' in credentials:
+		certificate = credentials['certificate']
+
+	return src_hostname, src_username, src_password, dst_hostname, dst_username, dst_password, delete_options, store_options, certificate
 
 
 def backup_from_yaml(config):
@@ -568,10 +609,10 @@ def backup_from_yaml(config):
 def backup_restore_from_yaml(config):
 	print("------------------------------------------------------------------------")
 	print("")
-	print("Step 1 of 5: Confirming accounts and pre-requisites ...")
+	print("Step 1 of 6: Confirming accounts and pre-requisites ...")
 	print("")
 
-	src_hostname, src_username, src_password, dst_hostname, dst_username, dst_password, delete_options, store_options = backup_restore_credentials_get(config)
+	src_hostname, src_username, src_password, dst_hostname, dst_username, dst_password, delete_options, store_options, certificate = backup_restore_credentials_get(config)
 
 	# Login to source and destination Portals to confirm the passwords are correct before proceeding
 	src_access_token, src_version, src_password = portal_authentication_check(src_hostname, src_username, src_password)
@@ -593,7 +634,7 @@ def backup_restore_from_yaml(config):
 	current_time = datetime.now().timestamp()
 
 	print("")
-	print("Step 2 of 5: Taking backup from source Portal %s" % src_hostname)
+	print("Step 2 of 6: Taking backup from source Portal %s" % src_hostname)
 	print("")
 
 	space_available = portal_backup_space_create(src_hostname, src_access_token, src_version, delete_options, store_options)
@@ -611,7 +652,7 @@ def backup_restore_from_yaml(config):
 		print("Backup file %s created and downloaded for Portal %s" % (backup_filename, src_hostname))
 
 	print("")
-	print("Step 3 of 5: Uploading backup to destination Portal %s." % dst_hostname)
+	print("Step 3 of 6: Uploading backup to destination Portal %s." % dst_hostname)
 	print("")
 
 	# Check if there is available space on the secondary instance (list_backups)
@@ -634,7 +675,7 @@ def backup_restore_from_yaml(config):
 			return
 
 	print("")
-	print("Step 4 of 5: Kicking off restore process on Portal %s." % dst_hostname)
+	print("Step 4 of 6: Kicking off restore process on Portal %s." % dst_hostname)
 	print("")
 
 	# Restore the uploaded backup on the secondary instance (restore)
@@ -672,7 +713,20 @@ def backup_restore_from_yaml(config):
 			return
 
 	print("")
-	print("Step 5 of 5: Cleaning up after script execution.")
+	print("Step 5 of 6: Restoring HTTPS TLS/SSL certificate to destination Portal %s" % dst_hostname)
+	print("")
+	if certificate != None:
+		print("Importing certificate into Portal ...")
+		new_certificate = portal_certificate_import(dst_hostname, dst_access_token, dst_version, certificate)
+		if 'fingerprint' in new_certificate:
+			if 'value' in new_certificate['fingerprint']:
+				print("Certificate with fingerprint %s imported into hostname %s" % (new_certificate['fingerprint']['value'], dst_hostname))
+		else:
+			print("WARNING")
+			print("Certificate failed to be imported and will need to be installed manually.")
+
+	print("")
+	print("Step 6 of 6: Cleaning up after script execution.")
 	print("")
 
 	# Delete the created backup on the destination Portal that was used for the restore (delete_backup)
