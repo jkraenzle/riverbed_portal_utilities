@@ -1,11 +1,13 @@
 # Provide hostname, username, and optionally password of the target Portal
 hostname: 10.1.150.224
 username: admin
+# key: adminkeyforrestapiaccess
 # Specify how you want to handle existing backups on the target Portal
 delete_options:
   delete_all_existing_backups_on_appliance: False
   delete_oldest_backup: True
   do_not_delete_existing_backups: False
+  delete_created_backup_from_source: True
 # Specify how you want to store backups locally, if you want to archive them
 store_options:
   download_and_store_existing_backups: False

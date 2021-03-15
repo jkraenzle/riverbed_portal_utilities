@@ -20,6 +20,7 @@ PORTAL_UTILITIES_ACTIONS = [ "list_backups", \
 			   "pull_backup", \
 			   "delete_backup", \
 			   "upload_backup", \
+			   "upload_certificate", \
 			   "restore", \
 			   "restore_status" ]
 PORTAL_UTILITIES_SCRIPT_TIMEOUT = 60
@@ -196,11 +197,15 @@ def portal_backup_download_and_delete (appliance, access_token, version, backup,
 	return delete_status, backup_filename
 
 # REST API Python wrapper to create and pull backup from appliance
-def portal_backup_get (appliance, access_token, version, path):
+def portal_backup_get (appliance, access_token, version, path, delete = True):
 	backup_id, backup = portal_backup_create (appliance, access_token, version)
 
+	filename = None
 	if (backup_id != None):
-		empty_result,filename = portal_backup_download_and_delete(appliance, access_token, version, backup, path)
+		if delete == True:
+			empty_result,filename = portal_backup_download_and_delete(appliance, access_token, version, backup, path)
+		else:
+			filename = portal_backup_download_and_store(appliance, access_token, version, backup, path)
 		return True,filename
 	else:
 		return False,filename
@@ -312,7 +317,7 @@ def portal_backup_clean_locally (store_options):
 				oldest_backup = backup
 
 		try:
-			print("Removing backup %s." % oldest_backup)
+			print("Removing backup %s from local disk." % oldest_backup)
 			backups_list.remove(oldest_backup)
 			os.remove (oldest_backup)
 			oldest_timestamp = None
@@ -471,6 +476,25 @@ def run_action(hostname, username, password, action, actionfile):
 
 		print (backup)
 
+	# ACTION - upload_certificate
+	elif (action == "upload_certificate"):
+		if actionfile == None or actionfile == "":
+			print("Please specify the path for the certificate and key file that you would like to import in --actionfile parameter")
+		else:
+			certificate_options = yamlread (actionfile)
+			new_certificate = portal_certificate_import(hostname, access_token, version, certificate_options['certificate'])
+			if new_certificate != None:
+				if 'fingerprint' in new_certificate:
+					if 'value' in new_certificate['fingerprint']:
+						print("Certificate with fingerprint %s imported into hostname %s" % (new_certificate['fingerprint']['value'], hostname))
+				else:
+					print("WARNING")
+					print("Unexpected response to certificate import process")
+			else:
+				print("WARNING")
+				print("Certificate failed to be imported and will need to be installed manually.")
+
+	# ACTION - restore
 	elif (action == "restore"):
 		if (actionfile == None or actionfile == ""):
 			print ("Please specify an ID for the filename on the appliance that you would like to restore in --actionfile parameter")
@@ -479,7 +503,8 @@ def run_action(hostname, username, password, action, actionfile):
 		restore_status = portal_backup_restore (hostname, access_token, version, id)
 
 		print(restore_status)
-				
+
+	# ACTION - restore_status				
 	elif (action == "restore_status"):
 			
 		status = portal_backup_restore_status (hostname, access_token, version)
@@ -512,9 +537,9 @@ def backup_credentials_get (filename):
 		username = credentials['username'] 
 
 	# Allow for testing, but the expectation is that this is not included in YAML
-	password = None
-	if 'password' in credentials:
-		password = credentials['password']
+	secret = None
+	if 'key' in credentials:
+		secret = credentials['key']
 
 	# Include options to handle what to do with existing backups and how to store locally
 	delete_options = None
@@ -524,7 +549,7 @@ def backup_credentials_get (filename):
 	if 'store_options' in credentials:
 		store_options = credentials['store_options']
 
-	return hostname, username, password, delete_options, store_options
+	return hostname, username, secret, delete_options, store_options
 
 def backup_restore_credentials_get (filename):
 
@@ -544,12 +569,12 @@ def backup_restore_credentials_get (filename):
 		dst_username = credentials['dst_username'] 
 
 	# Allow for testing, but the expectation is that this is not included in YAML
-	src_password = None
-	if 'src_password' in credentials:
-		src_password = credentials['src_password']
-	dst_password = None
-	if 'dst_password' in credentials:
-		dst_password = credentials['dst_password']
+	src_key = None
+	if 'src_key' in credentials:
+		src_key = credentials['src_key']
+	dst_key = None
+	if 'dst_key' in credentials:
+		dst_key = credentials['dst_key']
 
 	# Include options to handle what to do with existing backups and how to store locally
 	delete_options = None
@@ -563,7 +588,7 @@ def backup_restore_credentials_get (filename):
 	if 'certificate' in credentials:
 		certificate = credentials['certificate']
 
-	return src_hostname, src_username, src_password, dst_hostname, dst_username, dst_password, delete_options, store_options, certificate
+	return src_hostname, src_username, src_key, dst_hostname, dst_username, dst_key, delete_options, store_options, certificate
 
 
 def backup_from_yaml(config):
@@ -572,9 +597,9 @@ def backup_from_yaml(config):
 	print("Step 1 of 3: Confirming accounts and pre-requisites ...")
 	print("")
 
-	hostname, username, password, delete_options, store_options = backup_credentials_get(config)
+	hostname, username, key, delete_options, store_options = backup_credentials_get(config)
 
-	access_token, version, password = portal_authentication_check(hostname, username, password)
+	access_token, version, key = portal_authentication_check(hostname, username, key)
 	if access_token == None:
 		print("Authentication failed to Portal %s. Terminating script ..." % hostname)
 		return
@@ -586,7 +611,8 @@ def backup_from_yaml(config):
 	status = portal_backup_space_create (hostname, access_token, version, delete_options, store_options)
 
 	# Create, download, and delete a backup of the Portal at a current time (pull_backup)
-	backup_status,backup_filename = portal_backup_get(hostname, access_token, version, store_options['path'])
+	delete_created_backup_from_source = delete_options['delete_created_backup_from_source']
+	backup_status,backup_filename = portal_backup_get(hostname, access_token, version, store_options['path'], delete_created_backup_from_source)
 	if backup_status == False:
 		print("Portal %s backup failed. Terminating script ..." % hostname)
 		return
@@ -612,15 +638,15 @@ def backup_restore_from_yaml(config):
 	print("Step 1 of 6: Confirming accounts and pre-requisites ...")
 	print("")
 
-	src_hostname, src_username, src_password, dst_hostname, dst_username, dst_password, delete_options, store_options, certificate = backup_restore_credentials_get(config)
+	src_hostname, src_username, src_key, dst_hostname, dst_username, dst_key, delete_options, store_options, certificate = backup_restore_credentials_get(config)
 
 	# Login to source and destination Portals to confirm the passwords are correct before proceeding
-	src_access_token, src_version, src_password = portal_authentication_check(src_hostname, src_username, src_password)
+	src_access_token, src_version, src_key = portal_authentication_check(src_hostname, src_username, src_key)
 	if src_access_token == None:
 		print("Authentication failed to Portal %s. Terminating script ..." % src_hostname)
 		return
 
-	dst_access_token, dst_version, dst_password = portal_authentication_check(dst_hostname, dst_username, dst_password)
+	dst_access_token, dst_version, dst_key = portal_authentication_check(dst_hostname, dst_username, dst_key)
 	if dst_access_token == None:
 		print("Authentication failed to Portal %s. Terminating script ..." % dst_hostname)
 		return
@@ -644,7 +670,8 @@ def backup_restore_from_yaml(config):
 		return
 
 	# Create, download, and delete a backup of the Portal at a current time (pull_backup)
-	backup_status,backup_filename = portal_backup_get(src_hostname, src_access_token, src_version, store_options['path'])
+	delete_created_backup_from_source = delete_options['delete_created_backup_from_source']
+	backup_status,backup_filename = portal_backup_get(src_hostname, src_access_token, src_version, store_options['path'], delete_created_backup_from_source)
 	if backup_status == False:
 		print("Portal %s backup failed. Terminating script ..." % src_hostname)
 		return
@@ -691,7 +718,7 @@ def backup_restore_from_yaml(config):
 		time.sleep(15)
 		try:
 			if rebooting:
-				dst_access_token = portal_authenticate(dst_hostname, dst_username, dst_password, dst_version)
+				dst_access_token = portal_authenticate(dst_hostname, dst_username, dst_key, dst_version)
 				if dst_access_token == None:
 					print("Authentication failed to Portal %s. Waiting for reboot to complete ..." % dst_hostname)
 					continue
@@ -718,20 +745,29 @@ def backup_restore_from_yaml(config):
 	if certificate != None:
 		print("Importing certificate into Portal ...")
 		new_certificate = portal_certificate_import(dst_hostname, dst_access_token, dst_version, certificate)
-		if 'fingerprint' in new_certificate:
-			if 'value' in new_certificate['fingerprint']:
-				print("Certificate with fingerprint %s imported into hostname %s" % (new_certificate['fingerprint']['value'], dst_hostname))
+		if new_certificate != None:
+			if 'fingerprint' in new_certificate:
+				if 'value' in new_certificate['fingerprint']:
+					print("Certificate with fingerprint %s imported into hostname %s" % (new_certificate['fingerprint']['value'], hostname))
+			else:
+				print("WARNING")
+				print("Unexpected response to certificate import process. Certificate will likely need to be imported manually.")
 		else:
 			print("WARNING")
 			print("Certificate failed to be imported and will need to be installed manually.")
+	else:
+		print("NOTICE")
+		print("Certificate not provided in script configuration. It will need to be installed manually.")
 
 	print("")
 	print("Step 6 of 6: Cleaning up after script execution.")
 	print("")
 
-	# Delete the created backup on the destination Portal that was used for the restore (delete_backup)
-	print("Deleting uploaded backup %s (from filename %s) from Portal %s ..." % (id, backup_filename, dst_hostname))
-	delete_status = portal_backup_delete(dst_hostname, dst_access_token, dst_version, id)
+	# Optionally, delete the created backup on the destination Portal that was used for the restore (delete_backup)
+	delete_created_backup_from_destination = delete_options['delete_created_backup_from_destination']
+	if delete_created_backup_from_destination == True:
+		print("Deleting uploaded backup %s (from filename %s) from Portal %s ..." % (id, backup_filename, dst_hostname))
+		delete_status = portal_backup_delete(dst_hostname, dst_access_token, dst_version, id)
 
 	# Optionally, delete the backups from the local file system
 	cleanup_status = portal_backup_clean_locally(store_options)

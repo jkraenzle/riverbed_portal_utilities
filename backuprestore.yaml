@@ -1,8 +1,10 @@
 # Provide hostname, username, and optionally password of the source and destination Portals
 src_hostname: 10.1.150.224
 src_username: admin
+#src_key: adminsrckeyforrestapiaccess
 dst_hostname: 10.1.150.239
 dst_username: admin
+#dst_key: admindstkeyforrestapiaccess
 # Provide a path to the TLS/SSL certificate and key in PEM format
 certificate:
 # passphrase: test
@@ -12,6 +14,8 @@ delete_options:
   delete_all_existing_backups_on_appliance: False
   delete_oldest_backup: True
   do_not_delete_existing_backups: False
+  delete_created_backup_from_source: False
+  delete_created_backup_from_destination: True
 # Specify how you want to store backups locally, if you want to archive them
 store_options:
   download_and_store_existing_backups: False

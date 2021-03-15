@@ -1,0 +1,4 @@
+# Provide a path to the TLS/SSL certificate and key in PEM format
+certificate:
+  passphrase: test
+  file: /Users/jkraenzle/Desktop/Riverbed/GitHub/portal_utilities/certandkey.pem
