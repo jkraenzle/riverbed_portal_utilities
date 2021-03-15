@@ -39,10 +39,8 @@ Note, only two backups are permitted on Portal at one time. If two exist, one ba
 <b>Upload certificate</b>
 
 > python portal_utilities.py --hostname <hostname> --username admin --action upload_certificate --actionfile <certificate.yaml>
-````
-  certificate.yaml configures (1) path to certificate and key file and (2) passphrase
-  example included in files
-````
+>> The file certificate.yaml configures (1) the path to certificate and key file and (2) the passphrase.
+>> An example certificate.yaml is included in the GitHub repository files.
 
 <b>Restore backup</b>
 
