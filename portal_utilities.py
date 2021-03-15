@@ -764,8 +764,8 @@ def backup_restore_from_yaml(config):
 	print("")
 
 	# Optionally, delete the created backup on the destination Portal that was used for the restore (delete_backup)
-	delete_created_backup_from_destination = delete_options['delete_created_backup_from_destination']
-	if delete_created_backup_from_destination == True:
+	delete_uploaded_backup_from_destination = delete_options['delete_created_backup_from_destination']
+	if delete_uploaded_backup_from_destination == True:
 		print("Deleting uploaded backup %s (from filename %s) from Portal %s ..." % (id, backup_filename, dst_hostname))
 		delete_status = portal_backup_delete(dst_hostname, dst_access_token, dst_version, id)
 

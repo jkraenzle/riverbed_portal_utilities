@@ -15,7 +15,7 @@ delete_options:
   delete_oldest_backup: True
   do_not_delete_existing_backups: False
   delete_created_backup_from_source: False
-  delete_created_backup_from_destination: True
+  delete_uploaded_backup_from_destination: True
 # Specify how you want to store backups locally, if you want to archive them
 store_options:
   download_and_store_existing_backups: False
