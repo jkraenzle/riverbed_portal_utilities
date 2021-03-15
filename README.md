@@ -2,6 +2,8 @@
 
 Currently, a set of utilities for Portal backup and restore. There are two ways to execute the utilities, either by running individual actions, or performing a complete backup/restore cycle.
 
+The requirements.txt includes the additional dependent Python libraries required to run the scripts.
+
 <b>Backup/Restore Cycle</b>
 
 > python portal_utilities.py --backuprestorefromconfig backuprestore.yaml
