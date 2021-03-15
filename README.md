@@ -6,13 +6,13 @@ Currently, a set of utilities for Portal backup and restore. There are two ways 
 
 > python portal_utilities.py --backuprestorefromconfig backuprestore.yaml
 
-The backuprestore.yaml configuration file includes the ability to specify the source hostname and username and the destination hostname and username, along with backup storage and deletion options.
+The backuprestore.yaml configuration file includes the ability to specify the source hostname and username and the destination hostname and username, along with backup storage, deletion, and other options.
 
 <b>Backup Only</b>
 
 > python portal_utilities.py --backupfromconfig backup.yaml
 
-The backup.yaml configuration file includes the ability to specify hostname, username, and backup storage and deletion options.
+The backup.yaml configuration file includes the ability to specify hostname, username, and backup storage, deletion, and other options.
 
 <b>Actions</b>
 
@@ -33,6 +33,14 @@ Note, only two backups are permitted on Portal at one time. If two exist, one ba
 <b>Upload backup</b>
 
 > python portal_utilities.py --hostname <hostname> --username admin --action upload_backup --actionfile <backup_file.backup.tgz>
+
+<b>Upload certificate</b>
+
+> python portal_utilities.py --hostname <hostname> --username admin --action upload_certificate --actionfile <certificate.yaml>
+````
+  certificate.yaml configures (1) path to certificate and key file and (2) passphrase
+  example included in files
+````
 
 <b>Restore backup</b>
 
