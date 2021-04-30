@@ -748,7 +748,7 @@ def backup_restore_from_yaml(config):
 		if new_certificate != None:
 			if 'fingerprint' in new_certificate:
 				if 'value' in new_certificate['fingerprint']:
-					print("Certificate with fingerprint %s imported into hostname %s" % (new_certificate['fingerprint']['value'], hostname))
+					print("Certificate with fingerprint %s imported into hostname %s" % (new_certificate['fingerprint']['value'], dst_hostname))
 			else:
 				print("WARNING")
 				print("Unexpected response to certificate import process. Certificate will likely need to be imported manually.")
